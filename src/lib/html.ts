@@ -48,15 +48,25 @@ export function gridContent(cats: Array<Category & { links: Link[] }>): string {
 
 // ── Link rows ─────────────────────────────────────────────────────────────────
 
-/** Single link row — drag-handle + bold name + description/domain subtitle. */
+const FAVICON_FALLBACK = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">' +
+  '<path fill="#888" d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c0 .091-.006.18-.018.268A2 2 0 0 1 7 9.5H4a2 2 0 0 1 0-4h1.535c.218-.376.495-.714.82-1zm3.292 5H12a3 3 0 0 0 0-6H9a3 3 0 0 0-2.83 4H6c0-.091.006-.18.018-.268A2 2 0 0 1 9 6.5h3a2 2 0 0 1 0 4H9.465c-.218.376-.495.714-.82 1z"/>' +
+  '</svg>'
+);
+
+/** Single link row — drag-handle + favicon + bold name + description/domain subtitle. */
 export function linkRow(link: Link): string {
   const d = domain(link.url);
   const subtitle = link.description
     ? `<span class="link-desc">${esc(link.description)}</span>`
     : (d ? `<span class="link-domain">${esc(d)}</span>` : '');
+  const faviconSrc = d
+    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=32`
+    : FAVICON_FALLBACK;
   return `
 <li id="link-${link.id}" class="link-item">
   <span class="drag-handle">&#x2261;</span>
+  <img src="${faviconSrc}" class="link-favicon" width="16" height="16" alt="" loading="lazy" onerror="this.onerror=null;this.src='${FAVICON_FALLBACK}'">
   <div class="link-body">
     <a href="${esc(link.url)}" target="_blank" rel="noopener noreferrer" class="link-name">${esc(link.name)}</a>
     ${subtitle}
