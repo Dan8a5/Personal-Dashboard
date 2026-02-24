@@ -112,6 +112,15 @@ export function deleteCategory(id: number): void {
   db.prepare('DELETE FROM categories WHERE id = ?').run(id);
 }
 
+export function updateCategory(id: number, name: string): Category | undefined {
+  db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(name, id);
+  return db.prepare('SELECT * FROM categories WHERE id = ?').get(id) as Category | undefined;
+}
+
+export function getLinksForCategory(categoryId: number): Link[] {
+  return db.prepare('SELECT * FROM links WHERE category_id = ? ORDER BY pos, name').all(categoryId) as Link[];
+}
+
 export function reorderCategories(ids: number[]): void {
   const stmt = db.prepare('UPDATE categories SET pos = ? WHERE id = ?');
   db.transaction((items: Array<[number, number]>) => {
