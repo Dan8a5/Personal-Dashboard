@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: abyss --default, cyberpunk;
+}
+
+@layer base {
+  body { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  input, select, button, textarea { font-family: inherit; }
+}
+
+/* Alpine.js: hide before JS initialises */
+[x-cloak] { display: none !important; }
+
+/* ── Panel tab delete button: fade in on row hover ─────────── */
+.panel-tab-wrap .panel-del { opacity: 0; transition: opacity 0.1s; }
+.panel-tab-wrap:hover .panel-del { opacity: 0.45; }
+.panel-del:hover { opacity: 1 !important; }
+
+/* ── Link actions: fade in on row hover ─────────────────────── */
+.link-actions { opacity: 0; transition: opacity 0.1s; }
+.link-item:hover .link-actions { opacity: 1; }
+
+/* ── SortableJS drag states ──────────────────────────────────── */
+.drag-ghost { opacity: 0.25 !important; }
+.drag-ghost .link-actions,
+.drag-ghost .category-actions { opacity: 0 !important; }
+.drag-chosen { opacity: 0.9; }

@@ -1,4 +1,5 @@
 ---
+import '../styles/global.css';
 import { getPanels, getPanelCategories } from '../lib/db';
 import { panelTabWrap, gridContent } from '../lib/html';
 
@@ -8,7 +9,7 @@ const firstPanelId = firstPanel?.id ?? null;
 const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
 ---
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="abyss">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,724 +20,64 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
   <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js" defer></script>
   <script src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js" defer></script>
-  <!-- Theme: apply before first paint to prevent flash -->
+</head>
+<body x-data={`{ activePanel: ${firstPanelId ?? 'null'}, addingPanel: false, addingCategory: false, notesOpen: false }`}>
+
+  <!-- ── Theme: apply saved preference before paint to avoid flash ── -->
   <script>
     (function () {
-      var t = localStorage.getItem('theme') || 'system';
-      document.documentElement.setAttribute('data-theme', t);
-      var LABELS = { system: '\u25D0 AUTO', light: '\u25CB LIGHT', dark: '\u25CF DARK' };
-      window.__themeLabels = LABELS;
-      window.__themeOrder  = ['system', 'light', 'dark'];
-      window.cycleTheme = function () {
-        var order   = window.__themeOrder;
-        var current = document.documentElement.getAttribute('data-theme') || 'system';
-        var next    = order[(order.indexOf(current) + 1) % order.length];
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-        var btn = document.getElementById('theme-btn');
-        if (btn) btn.textContent = window.__themeLabels[next];
-      };
-      document.addEventListener('DOMContentLoaded', function () {
-        var btn = document.getElementById('theme-btn');
-        var theme = document.documentElement.getAttribute('data-theme') || 'system';
-        if (btn) btn.textContent = window.__themeLabels[theme];
-      });
+      var t = localStorage.getItem('dashboard-theme');
+      if (t === 'cyberpunk' || t === 'abyss') document.documentElement.setAttribute('data-theme', t);
     })();
   </script>
-  <style is:global>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    [x-cloak] { display: none !important; }
-
-    :root {
-      --bg:        #e9e5d8;
-      --bg-hi:     #e2ddd0;
-      --border:    #cac4b0;
-      --border-lo: #d6d0bc;
-      --text:      #141410;
-      --text-sub:  #7a7568;
-      --danger:    #891f1f;
-      --mono:      'JetBrains Mono', ui-monospace, monospace;
-      color-scheme: light;
-    }
-
-    /* ── Dark theme ─────────────────────────────────────────── */
-
-    [data-theme="dark"] {
-      --bg:        #1c1b18;
-      --bg-hi:     #252420;
-      --border:    #3d3b33;
-      --border-lo: #2f2d27;
-      --text:      #e8e4d8;
-      --text-sub:  #6b6459;
-      --danger:    #c44040;
-      color-scheme: dark;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      [data-theme="system"] {
-        --bg:        #1c1b18;
-        --bg-hi:     #252420;
-        --border:    #3d3b33;
-        --border-lo: #2f2d27;
-        --text:      #e8e4d8;
-        --text-sub:  #6b6459;
-        --danger:    #c44040;
-        color-scheme: dark;
-      }
-    }
-
-    html, body { height: 100%; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.45;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── Topbar ─────────────────────────────────────────────── */
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.45rem 2rem;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.58rem;
-      font-weight: 500;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--text-sub);
-    }
-
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 1.25rem;
-    }
-
-    .theme-btn {
-      background: none;
-      border: none;
-      color: var(--text-sub);
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 0.58rem;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 0;
-      transition: color 0.1s;
-    }
-
-    .theme-btn:hover { color: var(--text); }
-
-    /* ── Page header ────────────────────────────────────────── */
-
-    .page-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 2rem;
-      padding: 1.5rem 2rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-    }
-
-    .header-brand h1 {
-      font-size: 3rem;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      line-height: 1;
-      color: var(--text);
-      text-transform: uppercase;
-    }
-
-    .header-brand p {
-      font-size: 0.6rem;
-      font-weight: 500;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--text-sub);
-      margin-top: 0.35rem;
-    }
-
-    /* Right column: stacked controls */
-    .header-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 0.6rem;
-      padding-bottom: 0.1rem;
-    }
-
-    /* ── Panel tabs ─────────────────────────────────────────── */
-
-    .panel-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.1rem;
-    }
-
-    .panel-tabs {
-      display: flex;
-      align-items: center;
-    }
-
-    .panel-tab-wrap {
-      display: flex;
-      align-items: center;
-    }
-
-    .panel-tab {
-      background: none;
-      border: none;
-      color: var(--text-sub);
-      padding: 0.3rem 0.75rem;
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      line-height: 1.4;
-      transition: color 0.1s, background 0.1s;
-      white-space: nowrap;
-    }
-
-    .panel-tab:hover:not(.active) { color: var(--text); }
-
-    .panel-tab.active {
-      background: var(--text);
-      color: var(--bg);
-    }
-
-    /* × delete for panel tab */
-    .panel-del {
-      background: none;
-      border: none;
-      color: var(--text-sub);
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      padding: 0.2rem 0.3rem;
-      opacity: 0;
-      transition: opacity 0.1s, color 0.1s;
-      line-height: 1;
-      margin-right: 0.15rem;
-    }
-
-    .panel-tab-wrap:hover .panel-del { opacity: 0.45; }
-    .panel-tab.active ~ .panel-del   { opacity: 0.3; }
-    .panel-del:hover                  { opacity: 1 !important; color: var(--danger); }
-
-    /* + new panel button */
-    .add-panel-btn {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--text-sub);
-      padding: 0.25rem 0.55rem;
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      font-weight: 600;
-      line-height: 1.3;
-      transition: color 0.1s, border-color 0.1s;
-      margin-left: 0.3rem;
-    }
-
-    .add-panel-btn:hover { color: var(--text); border-color: var(--text-sub); }
-
-    .add-panel-ctrl {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .add-panel-form {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-    }
-
-    /* ── Add-category row ───────────────────────────────────── */
-
-    .add-cat-ctrl {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .add-cat-form {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-    }
-
-    /* ── Main content ───────────────────────────────────────── */
-
-    main {
-      padding: 0 2rem 4rem;
-    }
-
-    #categories-grid {
-      /* block flow — no CSS grid */
-    }
-
-    /* ── Search bar ─────────────────────────────────────────── */
-
-    .search-bar {
-      padding: 0.9rem 2rem 0;
-      display: flex;
-      align-items: center;
-    }
-
-    .search-input {
-      -webkit-appearance: none;
-      appearance: none;
-      background: var(--bg);
-      border: none;
-      border-bottom: 1px solid var(--border-lo);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      font-weight: 500;
-      letter-spacing: 0.1em;
-      padding: 0.18rem 0 0.18rem 0;
-      width: 220px;
-      outline: none;
-      transition: border-color 0.15s, width 0.2s;
-      -webkit-appearance: none;
-    }
-
-    .search-input:focus {
-      border-bottom-color: var(--text);
-      width: 320px;
-    }
-
-    .search-input::placeholder { color: var(--text-sub); }
-    .search-input::-webkit-search-cancel-button { display: none; }
-
-    /* ── Category section ───────────────────────────────────── */
-
-    .category-section {
-      padding-top: 1.5rem;
-    }
-
-    .category-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding-bottom: 0.5rem;
-      margin-bottom: 0;
-    }
-
-    .category-name {
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text);
-      white-space: nowrap;
-      flex-shrink: 0;
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 0;
-      font-family: var(--mono);
-    }
-
-    .category-name:hover { opacity: 0.7; }
-
-    /* ── Rename modal ────────────────────────────────────────── */
-
-    .rename-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-    }
-
-    .rename-dialog {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      min-width: 320px;
-    }
-
-    .rename-label {
-      font-size: 0.58rem;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--text-sub);
-    }
-
-    .rename-form {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    /* The —————— fill between name and buttons */
-    .cat-rule {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-      display: block;
-    }
-
-    .category-actions {
-      display: flex;
-      gap: 0.3rem;
-      flex-shrink: 0;
-    }
-
-    /* ── Links list ─────────────────────────────────────────── */
-
-    .links-list {
-      list-style: none;
-      padding: 0;
-    }
-
-    .link-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.6rem;
-      padding: 0.55rem 0;
-    }
-
-    .drag-handle {
-      font-size: 0.9rem;
-      color: var(--text-sub);
-      opacity: 0.4;
-      cursor: default;
-      user-select: none;
-      flex-shrink: 0;
-      margin-top: 0.05rem;
-      line-height: 1;
-    }
-
-    .link-favicon {
-      flex-shrink: 0;
-      width: 16px;
-      height: 16px;
-      border-radius: 2px;
-      margin-top: 0.1rem;
-      object-fit: contain;
-    }
-
-    .link-body {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .link-name {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      text-decoration: none;
-      color: var(--text);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      line-height: 1.3;
-    }
-
-    .link-name:hover {
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-
-    .link-domain {
-      display: block;
-      font-size: 0.63rem;
-      color: var(--text-sub);
-      margin-top: 0.18rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .link-desc {
-      display: block;
-      font-size: 0.63rem;
-      color: var(--text-sub);
-      margin-top: 0.18rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .link-actions {
-      display: flex;
-      gap: 0.25rem;
-      opacity: 0;
-      transition: opacity 0.1s;
-      flex-shrink: 0;
-      padding-top: 0.05rem;
-    }
-
-    .link-item:hover .link-actions { opacity: 1; }
-
-    /* ── Edit form ──────────────────────────────────────────── */
-
-    .link-editing {
-    }
-
-    .link-editing .drag-handle { margin-top: 0.35rem; }
-
-    .edit-form {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      flex: 1;
-      flex-wrap: wrap;
-    }
-
-    .edit-form .form-input:first-of-type { flex: 1; min-width: 80px; }
-    .edit-form .url-input               { flex: 2; min-width: 120px; }
-    .edit-form .desc-input              { flex: 2; min-width: 120px; }
-
-    /* ── Add link modal ─────────────────────────────────────── */
-
-    .add-link-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-    }
-
-    .add-link-dialog {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 1.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      min-width: 380px;
-    }
-
-    .dialog-title {
-      font-size: 0.58rem;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--text);
-      margin-bottom: 0.25rem;
-    }
-
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-    }
-
-    .field-label {
-      font-size: 0.55rem;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--text-sub);
-    }
-
-    .dialog-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.4rem;
-      margin-top: 0.25rem;
-    }
-
-    .form-select {
-      -webkit-appearance: none;
-      appearance: none;
-      background: var(--bg);
-      border: none;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.25rem 0.3rem;
-      font-size: 0.75rem;
-      font-family: var(--mono);
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      outline: none;
-      cursor: pointer;
-      flex: 1.5;
-      min-width: 80px;
-      transition: border-color 0.12s;
-    }
-
-    .form-select:focus { border-bottom-color: var(--text); }
-
-    /* ── Buttons ────────────────────────────────────────────── */
-
-    .btn {
-      -webkit-appearance: none;
-      appearance: none;
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-sub);
-      padding: 0.2rem 0.5rem;
-      cursor: pointer;
-      font-size: 0.62rem;
-      font-family: var(--mono);
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      line-height: 1.4;
-      transition: color 0.1s, border-color 0.1s;
-      white-space: nowrap;
-    }
-
-    .btn:hover {
-      color: var(--text);
-      border-color: var(--border);
-    }
-
-    .btn-primary {
-      background: var(--text);
-      border-color: var(--text);
-      color: var(--bg);
-    }
-
-    .btn-primary:hover { opacity: 0.8; }
-
-    .btn-danger { color: var(--danger); }
-    .btn-danger:hover { border-color: var(--danger); }
-
-    /* ── Inputs ─────────────────────────────────────────────── */
-
-    .form-input {
-      -webkit-appearance: none;
-      appearance: none;
-      background: var(--bg);
-      border: none;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.25rem 0.3rem;
-      font-size: 0.75rem;
-      font-family: var(--mono);
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      outline: none;
-      transition: border-color 0.12s;
-      width: 100%;
-    }
-
-    .form-input::placeholder { color: var(--text-sub); }
-    .form-input:focus        { border-bottom-color: var(--text); }
-
-    /* Kill browser autofill white/yellow flash */
-    .form-input:-webkit-autofill,
-    .form-input:-webkit-autofill:hover,
-    .form-input:-webkit-autofill:focus {
-      -webkit-box-shadow: 0 0 0 1000px var(--bg) inset;
-      -webkit-text-fill-color: var(--text);
-      caret-color: var(--text);
-    }
-
-    /* ── Drag & drop ────────────────────────────────────────── */
-
-    /* Handles */
-    .cat-drag,
-    .drag-handle {
-      cursor: grab;
-    }
-    .cat-drag:active,
-    .drag-handle:active {
-      cursor: grabbing;
-    }
-    /* Style the cat-drag to match the existing drag-handle look */
-    .cat-drag {
-      font-size: 0.9rem;
-      color: var(--text-sub);
-      opacity: 0.4;
-      user-select: none;
-      flex-shrink: 0;
-      line-height: 1;
-      transition: opacity 0.1s;
-    }
-    .category-header:hover .cat-drag { opacity: 0.75; }
-
-    /* Ghost = the placeholder that marks the drop target */
-    .drag-ghost {
-      opacity: 0.25 !important;
-      background: var(--bg-hi) !important;
-    }
-    /* While dragging, hide edit/action buttons on the ghost */
-    .drag-ghost .link-actions,
-    .drag-ghost .category-actions { opacity: 0 !important; }
-
-    /* The element currently being dragged (floating clone) */
-    .drag-chosen { opacity: 0.9; }
-
-    /* ── Empty states ───────────────────────────────────────── */
-
-    .empty-state,
-    .no-panels {
-      padding: 3.5rem 0;
-      font-size: 0.7rem;
-      letter-spacing: 0.06em;
-      color: var(--text-sub);
-    }
-
-    .empty-state p, .no-panels p {
-      text-transform: uppercase;
-    }
-
-    .empty-state small, .no-panels small {
-      display: block;
-      margin-top: 0.4rem;
-      font-size: 0.62rem;
-      opacity: 0.55;
-    }
-  </style>
-</head>
-<body x-data={`{ activePanel: ${firstPanelId ?? 'null'}, addingPanel: false, addingCategory: false }`}>
-
-  <!-- ── Topbar: label + theme toggle + live clock ──────────── -->
-  <div class="topbar">
-    <span>OPS DASHBOARD &nbsp;&middot;&nbsp; <span id="greeting"></span></span>
-    <span class="topbar-right">
-      <button id="theme-btn" class="theme-btn" onclick="cycleTheme()">&#x25D0; AUTO</button>
+  <!-- ── Topbar ──────────────────────────────────────────────── -->
+  <div class="navbar bg-base-200 border-b border-base-300 min-h-0 px-8 py-2 text-xs tracking-widest uppercase font-semibold text-base-content/50">
+    <div class="flex-1">OPS DASHBOARD &nbsp;&middot;&nbsp; <span id="greeting"></span></div>
+    <div class="flex items-center gap-4">
+      <label class="swap swap-rotate cursor-pointer" title="Toggle theme">
+        <input type="checkbox" id="theme-checkbox" />
+        <!-- sun icon → cyberpunk (light) -->
+        <svg class="swap-on h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
+        </svg>
+        <!-- moon icon → abyss (dark) -->
+        <svg class="swap-off h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
+        </svg>
+      </label>
+      <button
+        @click="notesOpen = !notesOpen"
+        class="btn btn-ghost btn-xs"
+        title="Quick notes">
+        <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+        </svg>
+      </button>
       <span id="clock"></span>
-    </span>
+    </div>
   </div>
 
-  <!-- ── Page header: branding + panel controls ─────────────── -->
-  <header class="page-header">
+  <!-- ── Page header ─────────────────────────────────────────── -->
+  <header class="flex items-end justify-between gap-8 px-8 py-6 border-b border-base-300 flex-wrap">
 
-    <div class="header-brand">
-      <h1>Command</h1>
-      <p>Mission Control</p>
+    <div>
+      <h1 class="text-5xl font-bold tracking-tight uppercase leading-none">Daniel</h1>
+      <p class="text-xs font-semibold tracking-widest uppercase text-base-content/50 mt-1.5">Personal Link Dashboard</p>
     </div>
 
-    <div class="header-right">
+    <div class="flex flex-col items-end gap-2">
 
       <!-- Panel tabs + add panel -->
-      <div class="panel-bar">
-        <nav id="panel-tabs-inner" class="panel-tabs">
+      <div class="flex items-center gap-1">
+        <div role="tablist" class="tabs tabs-border" id="panel-tabs-inner">
           {panels.map(p => <Fragment set:html={panelTabWrap(p)} />)}
-        </nav>
+        </div>
 
-        <div class="add-panel-ctrl">
+        <div class="flex items-center gap-1">
           <button
             @click="addingPanel = !addingPanel"
-            class="add-panel-btn"
+            class="btn btn-outline btn-xs"
             x-text="addingPanel ? '×' : '+'"></button>
 
           <form
@@ -746,24 +87,23 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
             hx-target="#panel-tabs-inner"
             hx-swap="beforeend"
             hx-on::after-request="if (event.detail.successful) { addingPanel = false; $el.reset(); }"
-            class="add-panel-form">
+            class="flex items-center gap-1">
             <input
               name="name"
               placeholder="Panel name"
               required
-              class="form-input"
-              autocomplete="off"
-              style="width: 130px;">
-            <button type="submit" class="btn btn-primary">CREATE</button>
+              class="input input-xs input-bordered w-32"
+              autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-xs">CREATE</button>
           </form>
         </div>
       </div>
 
       <!-- Add category (hidden until a panel exists) -->
-      <div class="add-cat-ctrl" x-show="activePanel !== null">
+      <div class="flex items-center gap-1" x-show="activePanel !== null">
         <button
           @click="addingCategory = !addingCategory"
-          class="btn"
+          class="btn btn-outline btn-xs"
           x-text="addingCategory ? 'CANCEL' : '+ CATEGORY'"></button>
 
         <form
@@ -773,33 +113,33 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
           hx-target="#categories-grid"
           hx-swap="beforeend"
           hx-on::after-request="if (event.detail.successful) { addingCategory = false; $el.reset(); }"
-          class="add-cat-form">
+          class="flex items-center gap-1">
           <input type="hidden" name="panel_id" :value="activePanel">
           <input
             name="name"
             placeholder="Category name"
             required
-            class="form-input"
-            autocomplete="off"
-            style="width: 160px;">
-          <button type="submit" class="btn btn-primary">CREATE</button>
+            class="input input-xs input-bordered w-40"
+            autocomplete="off">
+          <button type="submit" class="btn btn-primary btn-xs">CREATE</button>
         </form>
       </div>
 
     </div>
   </header>
 
-  <!-- ── Category list ──────────────────────────────────────── -->
-  <main>
-    <div class="search-bar">
-      <input id="search-input" type="search" class="search-input"
+  <!-- ── Content ─────────────────────────────────────────────── -->
+  <main class="px-8 pb-16">
+    <div class="pt-4 pb-1">
+      <input id="search-input" type="search"
+        class="input input-sm border-0 border-b border-base-300 rounded-none bg-transparent w-56 focus:outline-none focus:border-base-content focus:w-80 transition-all placeholder:text-base-content/40"
         placeholder="Filter links…" autocomplete="off" spellcheck="false">
     </div>
     <div id="categories-grid">
       {panels.length === 0 ? (
-        <div class="no-panels">
-          <p>No panels yet.</p>
-          <small>Click &ldquo;+&rdquo; above to create your first panel.</small>
+        <div class="py-14 text-xs tracking-wide text-base-content/40">
+          <p class="uppercase">No panels yet.</p>
+          <small class="block mt-1 opacity-60">Click "+" above to create your first panel.</small>
         </div>
       ) : (
         <Fragment set:html={gridContent(initialCats)} />
@@ -807,16 +147,10 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
     </div>
   </main>
 
-  <!-- ── SortableJS drag-and-drop ───────────────────────── -->
+  <!-- ── SortableJS drag-and-drop ───────────────────────────── -->
   <script>
-    // All defer scripts (HTMX, Alpine, SortableJS) execute before
-    // DOMContentLoaded, so Sortable is guaranteed to exist by the time
-    // this listener fires.
     document.addEventListener('DOMContentLoaded', function () {
 
-      // ── Helpers ──────────────────────────────────────────────
-
-      /** Read current order from a links list and persist it. */
       function saveLinksOrder(listEl) {
         const section = listEl.closest('[id^="category-"]');
         if (!section) return;
@@ -831,18 +165,13 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
         });
       }
 
-      // ── State ────────────────────────────────────────────────
-
       let catSortable = null;
-      // Map<HTMLElement, Sortable> — keyed by the actual DOM node
       const linkSortables = new Map();
-
-      // ── Init helpers ─────────────────────────────────────────
 
       function initLinksList(listEl) {
         if (linkSortables.has(listEl)) linkSortables.get(listEl).destroy();
         const s = Sortable.create(listEl, {
-          group:       'links',       // shared group = cross-category drag
+          group:       'links',
           handle:      '.drag-handle',
           draggable:   '.link-item',
           animation:   130,
@@ -884,12 +213,8 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
         document.querySelectorAll('.links-list').forEach(initLinksList);
       }
 
-      // ── Boot ─────────────────────────────────────────────────
-
       initAll();
 
-      // Re-init whenever HTMX updates something inside the categories grid.
-      // Covers: panel switch, new category, new link, link delete.
       document.addEventListener('htmx:afterSettle', function (evt) {
         const t = evt.detail.target;
         if (!t) return;
@@ -902,7 +227,7 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
     });
   </script>
 
-  <!-- Search / filter -->
+  <!-- ── Search / filter ────────────────────────────────────── -->
   <script>
     (function () {
       function filterLinks(q) {
@@ -933,33 +258,30 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
     })();
   </script>
 
-  <!-- Panel keyboard shortcuts: 1–9  /  focus search -->
+  <!-- ── Panel keyboard shortcuts: 1–9 / focus search ─────── -->
   <script>
     document.addEventListener('keydown', function (evt) {
-      // Skip when focus is inside any form field
       var tag = document.activeElement && document.activeElement.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (document.activeElement && document.activeElement.isContentEditable) return;
       if (evt.ctrlKey || evt.metaKey || evt.altKey) return;
 
-      // / → focus search input
       if (evt.key === '/') {
         var si = document.getElementById('search-input');
         if (si) { evt.preventDefault(); si.focus(); si.select(); }
         return;
       }
 
-      // 1–9 → switch panel
       var n = parseInt(evt.key, 10);
       if (n >= 1 && n <= 9) {
-        var tabs = document.querySelectorAll('#panel-tabs-inner .panel-tab');
+        var tabs = document.querySelectorAll('#panel-tabs-inner .tab');
         var tab  = tabs[n - 1];
         if (tab) tab.click();
       }
     });
   </script>
 
-  <!-- Live clock + greeting -->
+  <!-- ── Live clock + greeting ──────────────────────────────── -->
   <script>
     const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     function greeting(h) {
@@ -979,6 +301,69 @@ const initialCats  = firstPanel ? getPanelCategories(firstPanel.id) : [];
     }
     tick();
     setInterval(tick, 1000);
+  </script>
+
+  <!-- ── Quick notes drawer ─────────────────────────────────── -->
+  <div
+    x-show="notesOpen"
+    x-cloak
+    x-transition:enter="transition-transform duration-200 ease-out"
+    x-transition:enter-start="translate-x-full"
+    x-transition:enter-end="translate-x-0"
+    x-transition:leave="transition-transform duration-150 ease-in"
+    x-transition:leave-start="translate-x-0"
+    x-transition:leave-end="translate-x-full"
+    class="fixed top-0 right-0 h-full w-80 bg-base-200 border-l border-base-300 shadow-2xl z-50 flex flex-col">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-base-300 shrink-0">
+      <p class="text-xs font-bold tracking-widest uppercase">Quick Notes</p>
+      <button @click="notesOpen = false" class="btn btn-ghost btn-xs">&times;</button>
+    </div>
+    <textarea
+      id="notes-area"
+      class="flex-1 w-full bg-transparent resize-none p-4 text-sm leading-relaxed focus:outline-none placeholder:text-base-content/30 font-mono"
+      placeholder="Jot something down…"
+      spellcheck="false"></textarea>
+    <div class="px-4 py-2 border-t border-base-300 shrink-0 flex justify-end">
+      <button
+        id="notes-clear"
+        class="btn btn-ghost btn-xs text-base-content/40 hover:text-error">CLEAR</button>
+    </div>
+  </div>
+
+  <!-- ── Quick notes: persist to localStorage ───────────────── -->
+  <script>
+    (function () {
+      var area  = document.getElementById('notes-area');
+      var clear = document.getElementById('notes-clear');
+      if (!area) return;
+      area.value = localStorage.getItem('dashboard-notes') || '';
+      area.addEventListener('input', function () {
+        localStorage.setItem('dashboard-notes', this.value);
+      });
+      if (clear) clear.addEventListener('click', function () {
+        area.value = '';
+        localStorage.removeItem('dashboard-notes');
+        area.focus();
+      });
+    })();
+  </script>
+
+  <!-- ── Theme toggle ────────────────────────────────────────── -->
+  <script>
+    (function () {
+      var cb = document.getElementById('theme-checkbox');
+      function applyTheme(t) {
+        document.documentElement.setAttribute('data-theme', t);
+        localStorage.setItem('dashboard-theme', t);
+        if (cb) cb.checked = (t === 'cyberpunk');
+      }
+      // sync checkbox with current theme (may have been set by the inline script)
+      var current = document.documentElement.getAttribute('data-theme') || 'abyss';
+      if (cb) cb.checked = (current === 'cyberpunk');
+      if (cb) cb.addEventListener('change', function () {
+        applyTheme(this.checked ? 'cyberpunk' : 'abyss');
+      });
+    })();
   </script>
 
 </body>
